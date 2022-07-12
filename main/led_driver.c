@@ -9,6 +9,7 @@
 #include "driver/i2s.h"
 //#include "driver/spi_master.h"
 #include <string.h>
+#include <utils.h>
 
 static bool light_pos_taken[LED_NUM];
 pixel strip[LED_NUM];
@@ -32,6 +33,8 @@ static uint8_t step = 4;
 static SemaphoreHandle_t strip_data_semphr;
 //static uint32_t clock_rate = 55555;
 static uint32_t clock_rate = 93750;
+
+static float animation_clock = 0;
 
 Config config;
 
@@ -370,6 +373,8 @@ int mode_to_num(Config* config){
         return -1;
     else if(strcmp(config->mode, "off") == 0)
         return 5;
+    else if(strcmp(config->mode, "breathing") == 0)
+        return 6;
     else
         return 3;
 }
@@ -427,6 +432,7 @@ void animation_task(void *pvParameters){
         set_brightness((uint8_t)config.brightness);
         switch (mode_to_num(&config))
         {
+        // Police sprinkle
         case 0:
             clear_strip(strip);
             xSemaphoreTake(strip_data_semphr, portMAX_DELAY);
@@ -436,6 +442,7 @@ void animation_task(void *pvParameters){
 
             vTaskDelay(pdMS_TO_TICKS(1000/100));  
             break;
+        // Rainbow
         case 1:
             clear_strip(strip);
             for(int i = 0; i < LED_NUM; i++){
@@ -445,6 +452,7 @@ void animation_task(void *pvParameters){
             counter%=360;
             vTaskDelay(pdMS_TO_TICKS(1000/120));  
             break;
+        // Chase
         case 2:
             clear_strip(strip);
             if(color == 0)
@@ -461,30 +469,54 @@ void animation_task(void *pvParameters){
             counter%=LED_NUM;
             vTaskDelay(pdMS_TO_TICKS(1000/60));   
             break;
+        // White blinking
         case 3:
             for(int i = 0; i < LED_NUM; i++){
                 if((i+counter)%2 == 0)
-                    set_color(&strip[i], 255, 255, 255);
+                    set_color(&strip[i],
+                     config.selected_color.r,
+                     config.selected_color.g,
+                     config.selected_color.b);
                 else
                     set_color(&strip[i], 0, 0, 0);
             }           
             counter+=1;
             vTaskDelay(pdMS_TO_TICKS(1000/2));   
             break;
+        // Static 
         case 4:
-            //set_solid_color(strip, 255, 0, 12);
+            set_solid_color(strip,
+                config.selected_color.r,
+                config.selected_color.g,
+                config.selected_color.b);
             //memset(strip, config.selected_color, LED_NUM);
-            for(int i = 0; i < LED_NUM; i++){
-                strip[i].r = config.selected_color.r;
-                strip[i].g = config.selected_color.g;
-                strip[i].b = config.selected_color.b;
-            }
+            // for(int i = 0; i < LED_NUM; i++){
+            //     strip[i].r = config.selected_color.r;
+            //     strip[i].g = config.selected_color.g;
+            //     strip[i].b = config.selected_color.b;
+            // }
             vTaskDelay(pdMS_TO_TICKS(30));    
             break;
+        // Off
         case 5:
             memset(strip, 0, 3*LED_NUM);
             //vTaskDelay(pdMS_TO_TICKS(1000/60));   
             vTaskDelay(pdMS_TO_TICKS(30));     
+            break;
+        // Breathing
+        case 6: ;
+            float sine_val = (1.0f + (sin1(animation_clock * 32767) / 32767.0f)) / 2.0f;
+
+            printf("sine_val: %f\n", sine_val);
+
+            set_solid_color(strip, 
+            config.selected_color.r * sine_val, 
+            config.selected_color.g * sine_val, 
+            config.selected_color.b * sine_val);
+
+            animation_clock += 0.001f;
+
+            vTaskDelay(pdMS_TO_TICKS(1000/60));   
             break;
         default:
             vTaskDelay(pdMS_TO_TICKS(1000/250));  

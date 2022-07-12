@@ -4,6 +4,7 @@ let height = 50;
 let strip = [[]];
 let anim_num = 0;
 let counter = 0;
+let breathing_counter = 0
 let last_time = 0;
 let solid_color = {
   r : 255,
@@ -48,10 +49,13 @@ function HSVtoRGB(h, s, v) {
   };
 }
 
-let animation_texts = ["rainbow", "static", "breathing", "blinking", "chase", "tbd", "tbd", "off", "received"];
+let animation_texts = ["rainbow", "static", "breathing", "blinking", "chase", "police", "sparkles", "off", "received"];
 
 function selectColor(color){
   console.log(color.toHex());
+  solid_color.r = color.toRgb().r
+  solid_color.g = color.toRgb().g
+  solid_color.b = color.toRgb().b
   config["selected_color"] = color.toHex();
 }
 
@@ -97,6 +101,14 @@ function apply_animation(){
     case 1:
       for(let i = 0; i < led_num; i++){
         strip[i] = [solid_color.r, solid_color.g, solid_color.b];
+      }
+      break;
+    case 2:
+      breathing_counter += ((millis()-last_time)/1000)*0.05*2*Math.PI;
+      multiplier = (1 + sin(breathing_counter)) / 2
+      last_time = millis();
+      for(let i = 0; i < led_num; i++){
+        strip[i] = [solid_color.r * multiplier, solid_color.g * multiplier, solid_color.b * multiplier];
       }
       break;
   }

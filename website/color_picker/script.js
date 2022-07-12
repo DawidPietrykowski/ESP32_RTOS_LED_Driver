@@ -155,7 +155,7 @@ function setCurrentColor(color){
   color = tinycolor(color);
   currentColor = color;
   colorIndicator.style.backgroundColor = color;
-  document.body.style.backgroundColor = color; 
+  // document.body.style.backgroundColor = color; 
   spectrumCursor.style.backgroundColor = color; 
   selectColor(color);
   hueCursor.style.backgroundColor = 'hsl('+ color.toHsl().h +', 100%, 50%)';

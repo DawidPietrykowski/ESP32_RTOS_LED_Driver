@@ -40,7 +40,7 @@ Config config;
 
 uint8_t next_animation(){
     anim_selected+=1;
-    anim_selected%=6;
+    anim_selected%=7;
     return anim_selected;
 }
 uint8_t next_brightness(){
@@ -57,6 +57,11 @@ uint32_t update_clk_rate(){
     uint32_t bits_cfg = (I2S_BITS_PER_CHAN_16BIT << 16) | I2S_BITS_PER_SAMPLE_8BIT;
     i2s_set_clk(I2S_NUM_1, clock_rate, bits_cfg, I2S_CHANNEL_FMT_RIGHT_LEFT);
     return clock_rate;
+}
+
+void update_animation_config(){
+    anim_selected = mode_to_num(&config);
+    set_brightness((uint8_t)config.brightness);
 }
 
 void animation_switcher_task(void *pvParameters){
@@ -135,8 +140,8 @@ void led_task_i2s(void *pvParameters){
 }
 
 void set_color(pixel* p, uint8_t r, uint8_t g, uint8_t b){ 
-    p->g = r;
-    p->r = g;
+    p->r = r;
+    p->g = g;
     p->b = b;
 }
 void set_brightness(uint8_t b){
@@ -429,8 +434,7 @@ void animation_task(void *pvParameters){
     uint32_t counter = 0;
     uint8_t color = 0;
     while (true){
-        set_brightness((uint8_t)config.brightness);
-        switch (mode_to_num(&config))
+        switch (anim_selected)
         {
         // Police sprinkle
         case 0:

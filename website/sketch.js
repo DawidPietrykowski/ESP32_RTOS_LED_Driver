@@ -104,7 +104,7 @@ function apply_animation(){
       }
       break;
     case 2:
-      breathing_counter += ((millis()-last_time)/1000)*0.05*2*Math.PI;
+      breathing_counter += ((millis()-last_time)/1000)*0.1*2*Math.PI;
       multiplier = (1 + sin(breathing_counter)) / 2
       last_time = millis();
       for(let i = 0; i < led_num; i++){

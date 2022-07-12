@@ -36,14 +36,14 @@
 #define SPRINKLE_DIMMING_SPEED          1
 
 // Police lights
-//#define POLICE_SPRINKLE_LIGHT_COUNT     ((LED_NUM/(POLICE_LIGHTS_PADDING*2+1))-1)
-#define POLICE_SPRINKLE_LIGHT_COUNT     1
+#define POLICE_SPRINKLE_LIGHT_COUNT     ((LED_NUM/(POLICE_LIGHTS_PADDING*2+1))-1)
+//#define POLICE_SPRINKLE_LIGHT_COUNT     1
 #define POLICE_LIGHTS_PADDING           2
 #define POLICE_SPRINKLE_UPDATE_INTERVAL 5
 
 // Color stream
 #define COLOR_SLIDE_IN_INTERVAL 2
-#define CENTER_LED_ID 37
+#define CENTER_LED_ID (LED_NUM/2)
 
 typedef struct{
     uint8_t g;
@@ -71,6 +71,10 @@ typedef struct {
 
 } Config;
 
+int mode_to_num(Config* config);
+
+void update_animation_config();
+
 void animation_task(void *pvParameters);
 void led_task(void *pvParameters);
 void animation_switcher_task(void *pvParameters);
@@ -78,7 +82,6 @@ void led_task_i2s(void *pvParameters);
 
 void print_config();
 float quadratic_transition(float val);
-
 uint8_t next_animation();
 uint8_t next_brightness();
 uint32_t update_clk_rate();

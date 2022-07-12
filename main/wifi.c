@@ -446,6 +446,8 @@ esp_err_t post_handler(httpd_req_t *req){
 
     print_config();
 
+    update_animation_config();
+
     httpd_resp_send(req, NULL, 0);
 
     return ESP_OK;

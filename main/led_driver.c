@@ -265,7 +265,6 @@ void encode_strip_i2s(pixel strip[], uint32_t led_num){
     ESP_ERROR_CHECK(i2s_write(I2S_NUM_1, strip_i2s_data, LED_NUM * 12, &bytes_written, portMAX_DELAY));
     ESP_ERROR_CHECK(i2s_write(I2S_NUM_1, zero_buffer, ZERO_BUFFER_SIZE, &bytes_written, portMAX_DELAY));
     i2s_zero_dma_buffer(I2S_NUM_1);
-    //printf(bytes_written);
 }
 
 void update_strip(rmt_config_t* config, const rmt_item32_t *rmt_items, pixel strip[], uint32_t led_num){
@@ -401,9 +400,13 @@ void animation_task(void *pvParameters){
     config.default_animation = 1;
     config.enable_touch_control = true;
 
+    config.selected_color.r = 255;
+    config.selected_color.g = 0;
+    config.selected_color.b = 12;
+
     strip_data_semphr = xSemaphoreCreateBinary();
     xSemaphoreGive(strip_data_semphr);
-    printf("Entered animation_task\n");
+
     set_color(&basic_colors_s[0], 255,0,0);
     set_color(&basic_colors_s[1],255,60,12);
     set_color(&basic_colors_s[2],255,65,0);
@@ -493,25 +496,16 @@ void animation_task(void *pvParameters){
                 config.selected_color.r,
                 config.selected_color.g,
                 config.selected_color.b);
-            //memset(strip, config.selected_color, LED_NUM);
-            // for(int i = 0; i < LED_NUM; i++){
-            //     strip[i].r = config.selected_color.r;
-            //     strip[i].g = config.selected_color.g;
-            //     strip[i].b = config.selected_color.b;
-            // }
             vTaskDelay(pdMS_TO_TICKS(30));    
             break;
         // Off
         case 5:
             memset(strip, 0, 3*LED_NUM);
-            //vTaskDelay(pdMS_TO_TICKS(1000/60));   
             vTaskDelay(pdMS_TO_TICKS(30));     
             break;
         // Breathing
         case 6: ;
             float sine_val = (1.0f + (sin1(animation_clock * 32767) / 32767.0f)) / 2.0f;
-
-            printf("sine_val: %f\n", sine_val);
 
             set_solid_color(strip, 
             config.selected_color.r * sine_val, 

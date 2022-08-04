@@ -105,26 +105,43 @@ void led_task_i2s(void *pvParameters){
     strip_i2s_data = heap_caps_malloc(LED_NUM*12, MALLOC_CAP_DMA); // Critical to be DMA memory.
     printf("strip_i2s_data addr=%d\n", (uint32_t)strip_i2s_data);
 
-    i2s_config_t i2s_config = {
-        .mode = I2S_MODE_MASTER | I2S_MODE_TX,
-        .sample_rate = clock_rate,
-        //.sample_rate = 44100, 
-        //.sample_rate = 1,
-        .bits_per_sample = I2S_BITS_PER_SAMPLE_16BIT,
-        .channel_format = I2S_CHANNEL_FMT_RIGHT_LEFT,
-        .communication_format = I2S_COMM_FORMAT_I2S | I2S_COMM_FORMAT_I2S_MSB,
-        //.communication_format = I2S_COMM_FORMAT_I2S | I2S_COMM_FORMAT_I2S_LSB,
-        .dma_desc_num = 4,
-        .dma_frame_num = 720,
-        .use_apll = false,
-        .intr_alloc_flags = 0  // Interrupt level 1, default 0
-    };
+    // i2s_config_t i2s_config = {
+    //     .mode = I2S_MODE_MASTER | I2S_MODE_TX,
+    //     .sample_rate = clock_rate,
+    //     //.sample_rate = 44100, 
+    //     //.sample_rate = 1,
+    //     .bits_per_sample = I2S_BITS_PER_SAMPLE_16BIT,
+    //     .channel_format = I2S_CHANNEL_FMT_RIGHT_LEFT,
+    //     .communication_format = I2S_COMM_FORMAT_I2S | I2S_COMM_FORMAT_I2S_MSB,
+    //     //.communication_format = I2S_COMM_FORMAT_I2S | I2S_COMM_FORMAT_I2S_LSB,
+    //     .dma_desc_num = 4,
+    //     .dma_frame_num = 720,
+    //     .use_apll = false,
+    //     .intr_alloc_flags = 0  // Interrupt level 1, default 0
+    // };
     static const i2s_pin_config_t pin_config = {
         .bck_io_num = I2S_PIN_NO_CHANGE,
         .ws_io_num = I2S_PIN_NO_CHANGE,
         .data_out_num = LED_GPIO,
         .data_in_num = I2S_PIN_NO_CHANGE
     };
+
+    
+    const i2s_config_t i2s_config = {
+        .mode = I2S_MODE_MASTER | I2S_MODE_TX,
+        .sample_rate = 110250,
+        .bits_per_sample = I2S_BITS_PER_SAMPLE_16BIT,
+        .channel_format = I2S_CHANNEL_FMT_RIGHT_LEFT,
+        .communication_format = I2S_COMM_FORMAT_I2S | I2S_COMM_FORMAT_I2S_MSB,
+        .intr_alloc_flags = 0,
+        .dma_buf_count = 5,
+        .dma_buf_len = 12,
+        .use_apll = false,
+        .tx_desc_auto_clear = true,
+    };
+
+    // i2s_driver_install(I2S_PORT, &i2s_config, 0, NULL);
+
     
     ESP_ERROR_CHECK(i2s_driver_install(I2S_NUM_1, &i2s_config, 0, NULL));
     printf("I2S driver initiated\n");
@@ -136,7 +153,7 @@ void led_task_i2s(void *pvParameters){
 
     while(true){
         encode_strip_i2s(strip, LED_NUM);
-        vTaskDelay(pdMS_TO_TICKS(1000/10));
+        vTaskDelay(pdMS_TO_TICKS(1000));
     }
 }
 
@@ -220,7 +237,7 @@ void encode_strip_i2s(pixel strip[], uint32_t led_num){
     // const uint8_t bit0 = 0b11000000;
     // const uint8_t bit1 = 0b11111000;
     const uint8_t bit0 = 0b11000000;
-    const uint8_t bit1 = 0b11111100;
+    const uint8_t bit1 = 0b11111000;
     
     if(strip_data_semphr == NULL){
         printf("strip_data_semphr: NULL\n");
@@ -248,24 +265,15 @@ void encode_strip_i2s(pixel strip[], uint32_t led_num){
         strip_i2s_data[loc+9] = bitpatterns[strip_temp[i].b >> 4 & 0x03];
         strip_i2s_data[loc+10] = bitpatterns[strip_temp[i].b >> 2 & 0x03];
         strip_i2s_data[loc+11] = bitpatterns[strip_temp[i].b & 0x03];
-
-
-        // p+=12;
-
-        // for(int j = 0; j < 8; j++){
-        //     if(*((uint8_t*)strip_temp+i) & (1 << (7-j)))
-        //         *p = bit1;
-        //     else{
-        //         *p = bit0;
-        //     }
-        // }
     }
     xSemaphoreGive(strip_data_semphr);
 
     size_t bytes_written;
     ESP_ERROR_CHECK(i2s_write(I2S_NUM_1, strip_i2s_data, LED_NUM * 12, &bytes_written, portMAX_DELAY));
-    ESP_ERROR_CHECK(i2s_write(I2S_NUM_1, zero_buffer, ZERO_BUFFER_SIZE, &bytes_written, portMAX_DELAY));
-    i2s_zero_dma_buffer(I2S_NUM_1);
+    printf("Bytes written data: %d", bytes_written);
+    // ESP_ERROR_CHECK(i2s_write(I2S_NUM_1, zero_buffer, ZERO_BUFFER_SIZE, &bytes_written, portMAX_DELAY));
+    // printf("Bytes written zero: %d", bytes_written);
+    ESP_ERROR_CHECK(i2s_zero_dma_buffer(I2S_NUM_1));
 }
 
 void update_strip(rmt_config_t* config, const rmt_item32_t *rmt_items, pixel strip[], uint32_t led_num){
@@ -306,6 +314,7 @@ bool pol_free_spot(int pos){
     }
     return true;
 }
+
 void pol_reset(struct pol_light *p) {
     set_color(&strip[p->pos], 0, 0, 0);
     light_pos_taken[p->pos] = false;
@@ -393,23 +402,6 @@ void print_config(){
     printf("selected_color: %d %d %d\n\n", config.selected_color.r, config.selected_color.g, config.selected_color.b);
 }
 
-// static const pixel basic_colors_s[10];
-// static const int color_count_s = 10;
-
-// void init_color_sets(){
-// #define set_color_set_macro(i, rc, gc, bc) {basic_colors_s[i].r = rc; basic_colors_s[i].g = gc; basic_colors_s[i].b = bc;}
-// set_color_set_macro(0,255,0,0);
-// set_color_set_macro(1,255,60,12);
-// set_color_set_macro(2,255,65,0);
-// set_color_set_macro(3,0,0,255);
-// set_color_set_macro(4,255,0,2);
-// set_color_set_macro(5,255,0,12);
-// set_color_set_macro(6,0,255,0);
-// set_color_set_macro(7,0,255,255);
-// set_color_set_macro(8,0,255,100);
-// set_color_set_macro(9,255,200,128);
-// }
-
 void sprinkle_update(){
     for(int i=0;i<LED_NUM;i++){
 
@@ -454,6 +446,10 @@ void animation_task(void *pvParameters){
     config.selected_color.r = 255;
     config.selected_color.g = 0;
     config.selected_color.b = 12;
+
+    // config.selected_color.r = 255;
+    // config.selected_color.g = 255;
+    // config.selected_color.b = 255;
 
     strip_data_semphr = xSemaphoreCreateBinary();
     xSemaphoreGive(strip_data_semphr);

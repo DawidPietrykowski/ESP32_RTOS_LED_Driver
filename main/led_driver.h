@@ -7,7 +7,8 @@
 
 // WS2812B strip config
 #define LED_GPIO 17
-#define LED_NUM 60
+#define LED_NUM 5
+// #define LED_NUM 60
 #define RMT_REFRESH_RATE (120)
 #if 0
 #define WS2812_T0H_NS (350)
@@ -26,7 +27,7 @@
 #define ZERO_BUFFER_SIZE 48
 
 // Animations
-#define DEFAULT_ANIMATION   1
+#define DEFAULT_ANIMATION   4
 #define BRIGHTNESS_STEP     15
 #define BASIC_COLOR_S_COUNT 10
 

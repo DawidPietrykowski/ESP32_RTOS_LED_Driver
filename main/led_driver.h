@@ -28,6 +28,7 @@
 // Animations
 #define DEFAULT_ANIMATION   1
 #define BRIGHTNESS_STEP     15
+#define BASIC_COLOR_S_COUNT 10
 
 // Sprinkling
 #define GENERATE_RANDOM_FOR_SPRINKLE    false

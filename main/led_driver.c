@@ -17,8 +17,9 @@ static pixel strip_temp[LED_NUM];
 uint8_t *strip_i2s_data;
 static uint8_t zero_buffer[ZERO_BUFFER_SIZE];
 
-static pixel basic_colors_s[10];
-//static const uint8_t color_count_s;
+static pixel basic_colors_s[BASIC_COLOR_S_COUNT];
+static const uint8_t color_count_s = BASIC_COLOR_S_COUNT;
+
 static pixel basic_colors_police_s[4];
 // static const uint8_t color_count_police_s;
 // static uint8_t anim_selected;
@@ -379,6 +380,8 @@ int mode_to_num(Config* config){
         return 5;
     else if(strcmp(config->mode, "breathing") == 0)
         return 6;
+    else if(strcmp(config->mode, "sparkles") == 0)
+        return 7;
     else
         return 3;
 }
@@ -388,6 +391,54 @@ void print_config(){
     printf("mode: %s\n", config.mode);
     printf("brightness: %d\n", config.brightness);
     printf("selected_color: %d %d %d\n\n", config.selected_color.r, config.selected_color.g, config.selected_color.b);
+}
+
+// static const pixel basic_colors_s[10];
+// static const int color_count_s = 10;
+
+// void init_color_sets(){
+// #define set_color_set_macro(i, rc, gc, bc) {basic_colors_s[i].r = rc; basic_colors_s[i].g = gc; basic_colors_s[i].b = bc;}
+// set_color_set_macro(0,255,0,0);
+// set_color_set_macro(1,255,60,12);
+// set_color_set_macro(2,255,65,0);
+// set_color_set_macro(3,0,0,255);
+// set_color_set_macro(4,255,0,2);
+// set_color_set_macro(5,255,0,12);
+// set_color_set_macro(6,0,255,0);
+// set_color_set_macro(7,0,255,255);
+// set_color_set_macro(8,0,255,100);
+// set_color_set_macro(9,255,200,128);
+// }
+
+void sprinkle_update(){
+    for(int i=0;i<LED_NUM;i++){
+
+        float luminance = (0.2126f*strip[i].r + 0.7152f*strip[i].g + 0.0722f*strip[i].b);
+
+        if(luminance > SPRINKLE_TRESHOLD){
+            if(strip[i].r > SPRINKLE_DIMMING_SPEED)
+                strip[i].r -= SPRINKLE_DIMMING_SPEED;
+            else
+                strip[i].r = 0;
+
+            if(strip[i].g > SPRINKLE_DIMMING_SPEED)
+                strip[i].g -= SPRINKLE_DIMMING_SPEED;
+            else
+                strip[i].g = 0;
+
+            if(strip[i].b > SPRINKLE_DIMMING_SPEED)
+                strip[i].b -= SPRINKLE_DIMMING_SPEED;
+            else
+                strip[i].b = 0;
+            }
+        else{
+            int id = random()%color_count_s;
+            strip[i] = basic_colors_s[id];
+            strip[i].r -= random()%15;
+            strip[i].g -= random()%15;
+            strip[i].b -= random()%15;
+        }
+    }
 }
 
 void animation_task(void *pvParameters){
@@ -515,6 +566,12 @@ void animation_task(void *pvParameters){
             animation_clock += 0.001f;
 
             vTaskDelay(pdMS_TO_TICKS(1000/60));   
+            break;
+        case 7:
+            sprinkle_update();
+            
+            vTaskDelay(pdMS_TO_TICKS(1000/60));   
+
             break;
         default:
             vTaskDelay(pdMS_TO_TICKS(1000/250));  

@@ -188,7 +188,7 @@ void wifi_events(void* handler_arg, esp_event_base_t base, int32_t id, void* eve
     }
 }
 
-void wifi_init_sta_new(void)
+void wifi_init_sta_new(void *pvParameters)
 {
     ESP_ERROR_CHECK(init_spiffs());
     esp_err_t ret = nvs_flash_init();

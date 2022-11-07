@@ -20,5 +20,5 @@
 #define WIFI_FAIL_BIT      BIT1
 
 void wifi_init_sta(void);
-void wifi_init_sta_new(void);
+void wifi_init_sta_new(void *pvParameters);
 void http_server_init();

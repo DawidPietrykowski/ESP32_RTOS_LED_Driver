@@ -19,4 +19,4 @@ venv.bak/
 
 .vscode/
 build/
-
+.idea

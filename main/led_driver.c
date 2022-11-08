@@ -112,36 +112,62 @@ void write_i2s(){
 
     uint8_t *p = strip_i2s_data;
 
-    //uint16_t bitpatterns[4] = {0b10001000, 0b10001110, 0b11101000, 0b11101110};
+    if(strip_data_semphr == NULL){
+        printf("led_task: strip_data_semphr: NULL\n");
+        return;
+    }
 
-//    xSemaphoreTake(strip_data_semphr, portMAX_DELAY);
+    //uint16_t bitpatterns[4] = {0b10001000, 0b10001110, 0b11101000, 0b11101110};
+#define BYTE_TO_BINARY_PATTERN "%c%c%c%c%c%c%c%c"
+#define BYTE_TO_BINARY(byte)  \
+  (byte & 0x80 ? '1' : '0'), \
+  (byte & 0x40 ? '1' : '0'), \
+  (byte & 0x20 ? '1' : '0'), \
+  (byte & 0x10 ? '1' : '0'), \
+  (byte & 0x08 ? '1' : '0'), \
+  (byte & 0x04 ? '1' : '0'), \
+  (byte & 0x02 ? '1' : '0'), \
+  (byte & 0x01 ? '1' : '0') 
+
+        printf(BYTE_TO_BINARY_PATTERN"\n", BYTE_TO_BINARY(strip_temp[0].g));
+
+//    printf(""BYTE_TO_BINARY_PATTERN"\n"BYTE_TO_BINARY_PATTERN"\n"BYTE_TO_BINARY_PATTERN"\n\n", BYTE_TO_BINARY(strip_temp[0].g), BYTE_TO_BINARY(strip_temp[0].b), BYTE_TO_BINARY(strip_temp[0].b));
+
+   xSemaphoreTake(strip_data_semphr, portMAX_DELAY);
     for(int i = 0; i < LED_NUM; i++) {
 
         int loc = i * 24;
         for (int j = 0; j < 8; j++) {
-            if ((strip_temp[i].g >> (8 - j - 1)) & 1)
+            int shift = j + 4;
+            if(j > 3) shift = j - 4;
+            if ((strip_temp[i].g >> shift) & 1)
                 strip_i2s_data[loc + j] = bit1;
             else
                 strip_i2s_data[loc + j] = bit0;
         }
         for (int j = 0; j < 8; j++) {
-            if ((strip_temp[i].r >> (8 - j - 1)) & 1)
+            int shift = j + 4;
+            if(j > 3) shift = j - 4;
+            if ((strip_temp[i].r >> shift) & 1)
                 strip_i2s_data[loc + j + 8] = bit1;
             else
                 strip_i2s_data[loc + j + 8] = bit0;
         }
         for (int j = 0; j < 8; j++) {
-            if ((strip_temp[i].b >> (8 - j - 1)) & 1)
+            int shift = j + 4;
+            if(j > 3) shift = j - 4;
+            if ((strip_temp[i].b >> shift) & 1)
                 strip_i2s_data[loc + j + 16] = bit1;
             else
                 strip_i2s_data[loc + j + 16] = bit0;
         }
     }
+    xSemaphoreGive(strip_data_semphr);
 
     size_t w_bytes = 0;
 
     if (i2s_channel_write(tx_chan, strip_i2s_data, LED_NUM*24, &w_bytes, 1000) == ESP_OK) {
-        printf("Write Task: i2s write %d bytes\n", w_bytes);
+        // printf("Write Task: i2s write %d bytes\n", w_bytes);
     } else {
         printf("Write Task: i2s write failed\n");
     }
@@ -171,15 +197,24 @@ void led_task_i2s(void *pvParameters){
      * These two helper macros is defined in 'i2s_std.h' which can only be used in STD mode.
      * They can help to specify the slot and clock configurations for initialization or re-configuring */
     i2s_std_config_t tx_std_cfg = {
-            .clk_cfg  = I2S_STD_CLK_DEFAULT_CONFIG(200000),
-            .slot_cfg = {
-                    .bit_shift = false,
-                    .data_bit_width = I2S_DATA_BIT_WIDTH_16BIT,
-                    .slot_bit_width = I2S_SLOT_BIT_WIDTH_16BIT,
-                    .msb_right = false,
-                    .ws_pol = false,
-                    .ws_width = 0
-            },//I2S_STD_MSB_SLOT_DEFAULT_CONFIG(I2S_DATA_BIT_WIDTH_8BIT, I2S_SLOT_MODE_STEREO),
+            .clk_cfg  = I2S_STD_CLK_DEFAULT_CONFIG(100000),\
+
+            // NEED TO REVERSE First 4 bits and last 4 bits
+            .slot_cfg = I2S_STD_MSB_SLOT_DEFAULT_CONFIG(I2S_DATA_BIT_WIDTH_32BIT, I2S_SLOT_MODE_STEREO),
+            
+            // {
+            //         .slot_mask = I2S_STD_SLOT_BOTH,
+            //         .slot_mode = I2S_SLOT_MODE_STEREO,
+            //         .bit_shift = false,
+            //         .data_bit_width = I2S_DATA_BIT_WIDTH_16BIT,
+            //         .slot_bit_width = I2S_SLOT_BIT_WIDTH_16BIT,
+            //         .msb_right = false,
+            //         .ws_pol = false,
+            //         .ws_width = 0,
+            //}
+            
+//            .slot_cfg = I2S_STD_MSB_SLOT_DEFAULT_CONFIG(I2S_DATA_BIT_WIDTH_16BIT, I2S_SLOT_MODE_STEREO),
+            
             .gpio_cfg = {
                     .mclk = I2S_GPIO_UNUSED,    // some codecs may require mclk signal, this example doesn't need it
                     .bclk = I2S_GPIO_UNUSED,
@@ -200,7 +235,7 @@ void led_task_i2s(void *pvParameters){
         ESP_ERROR_CHECK(i2s_channel_enable(tx_chan));
         write_i2s();
         ESP_ERROR_CHECK(i2s_channel_disable(tx_chan));
-        vTaskDelay(pdMS_TO_TICKS(1000/60));
+        vTaskDelay(pdMS_TO_TICKS(1000/RMT_REFRESH_RATE));
     }
     vTaskDelete(NULL);
 }
@@ -280,69 +315,6 @@ void led_strip_hsv2rgb(uint32_t h, uint32_t s, uint32_t v, uint8_t *r, uint8_t *
 }
 
 // static const uint16_t bitpatterns[4] = {0x88, 0x8e, 0xe8, 0xee};
-void encode_strip_i2s(pixel strip[], uint32_t led_num){
-    apply_brightness(strip);
-    // const uint8_t bit0 = 0b11000000;
-    // const uint8_t bit1 = 0b11111000;
-    const uint8_t bit0 = 0b11000000;
-    const uint8_t bit1 = 0b11111000;
-    
-    if(strip_data_semphr == NULL){
-        printf("strip_data_semphr: NULL\n");
-        return;
-    }
-    uint8_t *p = strip_i2s_data;
-
-    //uint16_t bitpatterns[4] = {0b10001000, 0b10001110, 0b11101000, 0b11101110};
-
-    xSemaphoreTake(strip_data_semphr, portMAX_DELAY);
-    for(int i = 0; i < LED_NUM; i++){
-
-        int loc = i * 24;
-        for(int j = 0; j < 8; j++){
-            if((strip_temp[i].g >> (8 - j - 1)) & 1)
-                strip_i2s_data[loc + j] = bit1;
-            else
-                strip_i2s_data[loc + j] = bit0;
-        }
-        for(int j = 0; j < 8; j++){
-            if((strip_temp[i].r >> (8 - j - 1)) & 1)
-                strip_i2s_data[loc + j + 8] = bit1;
-            else
-                strip_i2s_data[loc + j + 8] = bit0;
-        }
-        for(int j = 0; j < 8; j++){
-            if((strip_temp[i].b >> (8 - j - 1)) & 1)
-                strip_i2s_data[loc + j + 16] = bit1;
-            else
-                strip_i2s_data[loc + j + 16] = bit0;
-        }
-
-        // strip_i2s_data[loc+0] = bitpatterns[strip_temp[i].g >> 6 & 0x03];
-        // strip_i2s_data[loc+1] = bitpatterns[strip_temp[i].g >> 4 & 0x03];
-        // strip_i2s_data[loc+2] = bitpatterns[strip_temp[i].g >> 2 & 0x03];
-        // strip_i2s_data[loc+3] = bitpatterns[strip_temp[i].g & 0x03];
-
-        // strip_i2s_data[loc+4] = bitpatterns[strip_temp[i].r >> 6 & 0x03];
-        // strip_i2s_data[loc+5] = bitpatterns[strip_temp[i].r >> 4 & 0x03];
-        // strip_i2s_data[loc+6] = bitpatterns[strip_temp[i].r >> 2 & 0x03];
-        // strip_i2s_data[loc+7] = bitpatterns[strip_temp[i].r & 0x03];
-
-        // strip_i2s_data[loc+8] = bitpatterns[strip_temp[i].b >> 6 & 0x03];
-        // strip_i2s_data[loc+9] = bitpatterns[strip_temp[i].b >> 4 & 0x03];
-        // strip_i2s_data[loc+10] = bitpatterns[strip_temp[i].b >> 2 & 0x03];
-        // strip_i2s_data[loc+11] = bitpatterns[strip_temp[i].b & 0x03];
-    }
-    xSemaphoreGive(strip_data_semphr);
-
-//    size_t bytes_written;
-//    ESP_ERROR_CHECK(i2s_write(I2S_NUM_1, strip_i2s_data, LED_NUM * 24, &bytes_written, portMAX_DELAY));
-//    printf("Bytes written data: %d", bytes_written);
-    // ESP_ERROR_CHECK(i2s_write(I2S_NUM_1, zero_buffer, ZERO_BUFFER_SIZE, &bytes_written, portMAX_DELAY));
-    // printf("Bytes written zero: %d", bytes_written);
-//    ESP_ERROR_CHECK(i2s_zero_dma_buffer(I2S_NUM_1));
-}
-
 void update_strip(rmt_config_t* config, const rmt_item32_t *rmt_items, pixel strip[], uint32_t led_num){
     apply_brightness(strip);
     const rmt_item32_t bit0 = {{{WS2812_T0H_NS/25, 1, WS2812_T0L_NS/25, 0}}};

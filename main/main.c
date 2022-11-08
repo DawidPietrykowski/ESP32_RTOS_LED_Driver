@@ -26,6 +26,7 @@ void app_main(void)
 
     uint32_t stack_depth_rmt = (uint32_t)((LED_NUM*24+1) * 4) + 2048;
     xTaskCreatePinnedToCore(led_task_i2s, "led_task_i2s", 16384 * 4, (void *)1, configMAX_PRIORITIES - 1, NULL, 1);
+    // xTaskCreatePinnedToCore(led_task, "led_task", 16384 * 4, (void *)1, configMAX_PRIORITIES - 1, NULL, 1);
 
     xTaskCreatePinnedToCore(animation_task, "animation_task", 16384, (void *)1, configMAX_PRIORITIES - 3, NULL, 1);
     

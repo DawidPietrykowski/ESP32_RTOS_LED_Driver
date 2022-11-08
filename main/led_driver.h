@@ -7,8 +7,8 @@
 
 // WS2812B strip config
 #define LED_GPIO 17
-//#define LED_NUM 5
 #define LED_NUM 60
+//#define LED_NUM 60
 #define RMT_REFRESH_RATE (120)
 #if 0
 #define WS2812_T0H_NS (350)
@@ -39,7 +39,7 @@
 
 // Police lights
 #define POLICE_SPRINKLE_LIGHT_COUNT     ((LED_NUM/(POLICE_LIGHTS_PADDING*2+1))-1)
-//#define POLICE_SPRINKLE_LIGHT_COUNT     1
+// #define POLICE_SPRINKLE_LIGHT_COUNT     1
 #define POLICE_LIGHTS_PADDING           2
 #define POLICE_SPRINKLE_UPDATE_INTERVAL 5
 

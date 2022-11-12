@@ -12,5 +12,5 @@
 #         led_driver.c
 #         led_driver.h
 #     )
-idf_component_register(SRCS "main.c" "touch.c" "wifi.c" "led_driver.c" "utils.c"
+idf_component_register(SRCS "main.c" "touch.c" "wifi.c" "led_driver.c" "utils.c" "animations.c"
 INCLUDE_DIRS ".")

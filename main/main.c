@@ -17,6 +17,7 @@
 #include "led_driver.h"
 #include "touch.h"
 #include "wifi.h"
+#include "animations.h"
 
 void app_main(void);
 

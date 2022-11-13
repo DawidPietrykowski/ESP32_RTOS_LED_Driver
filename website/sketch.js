@@ -15,14 +15,46 @@ let domain_name = window.location.href;
 
 let config = {
   "mode": "rainbow",
-  "anim_refresh_rate": 120,
-  "rmt_refresh_rate": 150,
+  "anim_refresh_rate": 60,
+  "refresh_rate": 60,
   "brightness": 255,
-  "brightness_step": 50,
-  "default_animation": 1,
+  "brightness_step": 64,
+  "default_animation": 0,
   "enable_touch_control": true,
-  "selected_color":"0000ff"
+  "selected_color":"0000ff",
+  "spread_value":3,
+  "animation_direction":1,
+  "single_color": true,
+  "anim_speed":100
 };
+
+initConfig();
+
+function initConfig(){
+  var xmlHttp = new XMLHttpRequest();
+  xmlHttp.onreadystatechange = function() { 
+      if (xmlHttp.readyState == 4 && xmlHttp.status == 200){
+        console.log(xmlHttp.responseText);
+        obj = JSON.parse(xmlHttp.responseText);
+        config["mode"] = obj["mode"];
+        config["anim_refresh_rate"] = obj["anim_refresh_rate"];
+        config["refresh_rate"] = obj["refresh_rate"];
+        config["brightness"] = obj["brightness"];
+        config["brightness_step"] = obj["brightness_step"];
+        config["default_animation"] = obj["default_animation"];
+        config["enable_touch_control"] = obj["enable_touch_control"];
+        config["anim_speed"] = obj["anim_speed"];
+        config["spread_value"] = 3;
+        config["animation_direction"] = 1;
+        config["single_color"] = false;
+        console.log(config);
+  }
+}
+  
+  xmlHttp.open( "GET", domain_name + "config", true );
+  xmlHttp.send( null );
+  return xmlHttp.responseText;
+}
 
 function HSVtoRGB(h, s, v) {
   var r, g, b, i, f, p, q, t;
@@ -73,8 +105,27 @@ function selectColor(color){
 
 function selectAnimation(animation_number){
   anim_num = animation_number;
+  var element = document.getElementById("animation-refresh-value");
+  config["anim_refresh_rate"] = parseInt(element.textContent);
+  var element = document.getElementById("refresh-rate-value");
+  config["refresh_rate"] = parseInt(element.textContent);
   var element = document.getElementById("brightness-value");
   config["brightness"] = parseInt(element.textContent);
+  var element = document.getElementById("brightness-step-value");
+  config["brightness_step"] = parseInt(element.textContent);
+  var element = document.getElementById("default-animation-value");
+  config["default_animation"] = parseInt(element.textContent);
+  var element = document.getElementById("touch-control-value");
+  config["enable_touch_control"] = element.checked;
+
+  var element = document.getElementById("animation-speed-value");
+  config["anim_speed"] = parseInt(element.textContent);
+  var element = document.getElementById("animation-spread-value");
+  config["spread_value"] = parseInt(element.textContent);
+  var element = document.getElementById("animation-direction-value");
+  config["animation_direction"] = parseInt(element.textContent);
+  var element = document.getElementById("single-color-value");
+  config["single_color"] = element.checked;
 
   var xhr = new XMLHttpRequest();
   var url = domain_name;
@@ -90,14 +141,17 @@ function selectAnimation(animation_number){
   };
 
   config["mode"] = animation_texts[animation_number];
-  var data = JSON.stringify({
-    "mode": config["mode"],
-    "selected_color":config["selected_color"],
-    "brightness": config["brightness"],
-  });
+  var data = JSON.stringify(config);
   console.log("sending data");
   console.log(data);
   xhr.send(data);
+
+  for (const element of document.getElementsByClassName("menu-entry")) {
+    if(element.id == animation_number)
+      element.classList.add("active");
+    else
+      element.classList.remove("active");
+}
 }
 
 function apply_animation(){

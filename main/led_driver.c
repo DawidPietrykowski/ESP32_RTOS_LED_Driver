@@ -7,7 +7,6 @@
 #include "esp_system.h"
 #include "esp_random.h"
 #include <string.h>
-//#include "driver/spi_master.h"
 #include <string.h>
 #include <utils.h>
 #include "driver/i2s_std.h"
@@ -62,12 +61,6 @@ void write_i2s(){
 
     uint8_t *p = strip_i2s_data;
 
-    // if(strip_data_semphr == NULL){
-    //     printf("led_task_i2s: strip_data_semphr: NULL\n");
-    //     return;
-    // }
-
-//    xSemaphoreTake(strip_data_semphr, portMAX_DELAY);
     for(int i = 0; i < LED_NUM; i++) {
 
         int loc = i * 24;
@@ -96,7 +89,6 @@ void write_i2s(){
                 strip_i2s_data[loc + j + 16] = bit0;
         }
     }
-    // xSemaphoreGive(strip_data_semphr);
 
     size_t w_bytes = 0;
 
@@ -134,19 +126,18 @@ void led_task_i2s(void *pvParameters){
 
     TickType_t current_ticks;
     TickType_t last_ticks = 0;
-    TickType_t period_ticks = pdMS_TO_TICKS(1000/I2S_REFRESH_RATE);
 
     vTaskDelay(1);
 
     while (true) {
         current_ticks = xTaskGetTickCount();
-        if(current_ticks - last_ticks >= period_ticks){
+        if(config.refresh_rate != 0 && 
+        current_ticks - last_ticks >= pdMS_TO_TICKS(1000/config.refresh_rate)){
             ESP_ERROR_CHECK(i2s_channel_enable(tx_chan));
             write_i2s();
             ESP_ERROR_CHECK(i2s_channel_disable(tx_chan));
             last_ticks = current_ticks;
         }
-        // vTaskSwitchContext();
         vTaskDelay(1);
     }
     vTaskDelete(NULL);
@@ -178,30 +169,57 @@ void update_strip(rmt_config_t* config, const rmt_item32_t *rmt_items, pixel str
     rmt_write_items(config->channel, rmt_items, led_num*24+1, true);
 }
 
-int mode_to_num(Config* config){
-    if(strcmp(config->mode, "rainbow") == 0)
+int mode_to_num(char* mode){
+    if(strcmp(mode, "rainbow") == 0)
         return 1;
-    else if(strcmp(config->mode, "static") == 0)
+    else if(strcmp(mode, "static") == 0)
         return 4;
-    else if(strcmp(config->mode, "chase") == 0)
+    else if(strcmp(mode, "chase") == 0)
         return 2;
-    else if(strcmp(config->mode, "police") == 0)
+    else if(strcmp(mode, "police") == 0)
         return 0;
-    else if(strcmp(config->mode, "received") == 0)
+    else if(strcmp(mode, "received") == 0)
         return -1;
-    else if(strcmp(config->mode, "off") == 0)
+    else if(strcmp(mode, "off") == 0)
         return 5;
-    else if(strcmp(config->mode, "breathing") == 0)
+    else if(strcmp(mode, "breathing") == 0)
         return 6;
-    else if(strcmp(config->mode, "sparkles") == 0)
+    else if(strcmp(mode, "sparkles") == 0)
         return 7;
-    else
+    else if(strcmp(mode, "blinking") == 0)
         return 3;
+    else
+        return config.mode;
 }
+
+char* num_to_mode(int mode){
+    switch (mode)
+    {
+        case 0:
+            return "police";
+        case 1:
+            return "rainbow";
+        case 2:
+            return "chase";
+        case 3:
+            return "blinking";
+        case 4:
+            return "static";
+        case 5:
+            return "off";
+        case 6:
+            return "breathing";
+        case 7:
+            return "sparkles";
+        default:
+            return config.mode;
+    }
+}
+
 
 void print_config(){
     printf("Config:\n");
-    printf("mode: %s\n", config.mode);
+    printf("mode: %d\n", config.mode);
     printf("brightness: %d\n", config.brightness);
     printf("selected_color: %d %d %d\n\n", config.selected_color.r, config.selected_color.g, config.selected_color.b);
 }

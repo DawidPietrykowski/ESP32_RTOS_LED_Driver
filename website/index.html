@@ -19,29 +19,29 @@
 
   <div class="slidecontainer">
     <div class="vertical-menu">
-      <a onclick="selectAnimation(0)" class="active">Rainbow</a>
-      <a onclick="selectAnimation(1)">Static</a>
-      <a onclick="selectAnimation(2)">Breathing</a>
-      <a onclick="selectAnimation(3)">Blinking</a>
-      <a onclick="selectAnimation(4)">Chase</a>
-      <a onclick="selectAnimation(5)">Police</a>
-      <a onclick="selectAnimation(6)">Sparkles</a>
-      <a onclick="selectAnimation(7)">Off</a>
-      <a onclick="selectAnimation(8)">Custom</a>
+      <a id="0" onclick="selectAnimation(this.id)" class="menu-entry">Rainbow</a>
+      <a id="1" onclick="selectAnimation(this.id)" class="menu-entry">Static</a>
+      <a id="2" onclick="selectAnimation(this.id)" class="menu-entry">Breathing</a>
+      <a id="3" onclick="selectAnimation(this.id)" class="menu-entry">Blinking</a>
+      <a id="4" onclick="selectAnimation(this.id)" class="menu-entry">Chase</a>
+      <a id="5" onclick="selectAnimation(this.id)" class="menu-entry">Police</a>
+      <a id="6" onclick="selectAnimation(this.id)" class="menu-entry">Sparkles</a>
+      <a id="7" onclick="selectAnimation(this.id)" class="menu-entry">Off</a>
+      <a id="8" onclick="selectAnimation(this.id)" class="menu-entry">Custom</a>
     </div>
     <div class="config-panel">
       <div class="config-entry">
         <label class="config-entry-label">Animation refresh rate</label>
         <div class="range-slider">
           <input class="range-slider__range" type="range" value="120" min="0" max="160">
-          <span class="range-slider__value">120</span>
+          <span class="range-slider__value" id="animation-refresh-value">120</span>
         </div>
       </div>
       <div class="config-entry">
-        <label class="config-entry-label">RMT refresh rate</label>
+        <label class="config-entry-label">Refresh rate</label>
         <div class="range-slider">
           <input class="range-slider__range" type="range" value="150" min="0" max="240">
-          <span class="range-slider__value">150</span>
+          <span class="range-slider__value" id="refresh-rate-value">150</span>
         </div>
       </div>
       <div class="config-entry">
@@ -55,20 +55,20 @@
         <label class="config-entry-label">Brightness step</label>
         <div class="range-slider">
           <input class="range-slider__range" type="range" value="255" min="0" max="255">
-          <span class="range-slider__value">255</span>
+          <span class="range-slider__value" id="brightness-step-value">255</span>
         </div>
       </div>
       <div class="config-entry">
         <label class="config-entry-label">Default animation</label>
         <div class="range-slider">
           <input class="range-slider__range" type="range" value="1" min="1" max="10">
-          <span class="range-slider__value">1</span>
+          <span class="range-slider__value" id="default-animation-value">1</span>
         </div>
       </div>
       <div class="config-entry">
         <label class="config-entry-label">Touch control enabled</label>
         <div class="checkmark">
-          <input type="checkbox">
+          <input type="checkbox" id="touch-control-value">
         </div>
       </div>
       <!-- <div>
@@ -85,36 +85,29 @@
           <label class="config-entry-label">Speed</label>
           <div class="range-slider">
             <input class="range-slider__range" type="range" value="120" min="0" max="720">
-            <span class="range-slider__value">120</span>
+            <span class="range-slider__value" id="animation-speed-value">100</span>
           </div>
         </div>
         <div class="config-entry">
           <label class="config-entry-label">Spread</label>
           <div class="range-slider">
             <input class="range-slider__range" type="range" value="150" min="0" max="240">
-            <span class="range-slider__value">150</span>
+            <span class="range-slider__value" id="animation-spread-value">150</span>
           </div>
         </div>
         <div class="config-entry">
           <label class="config-entry-label">Direction</label>
           <div class="range-slider">
             <input class="range-slider__range" type="range" value="1" min="-1" max="1">
-            <span class="range-slider__value">1</span>
+            <span class="range-slider__value" id="animation-direction-value">1</span>
           </div>
         </div>
         <div class="config-entry">
           <label class="config-entry-label">Single color</label>
           <div class="checkmark">
-            <input type="checkbox">
+            <input type="checkbox" id="single-color-value">
           </div>
       </div>
-      <!-- <div>
-        <div class="btn-holder">
-          <button class="btn btn-5 hover-border-11">
-            <span>SEND</span>
-          </button>
-        </div>
-      </div> -->
     </div>
     <div class="color-panel">
       <div class="front color-picker-dark-theme"></div>

@@ -10,6 +10,7 @@
 
 #include <sys/types.h>
 
+
 static bool light_pos_taken[LED_NUM];
 static pixel basic_colors_s[BASIC_COLOR_S_COUNT];
 static const uint8_t color_count_s = BASIC_COLOR_S_COUNT;
@@ -17,12 +18,12 @@ static pixel basic_colors_police_s[4];
 
 static const uint8_t color_count_police_s = 4;
 static uint8_t anim_selected = DEFAULT_ANIMATION;
-static uint8_t brightness=255;
 static uint8_t step = 4;
 
 static float animation_clock = 0;
 
 extern Config config;
+#define ANIMATION_SPEED (((float)config.anim_speed / 100.0f))
 extern pixel strip[LED_NUM];
 extern pixel strip_temp[LED_NUM];
 extern SemaphoreHandle_t strip_data_semphr;
@@ -33,9 +34,10 @@ uint8_t next_animation(){
     return anim_selected;
 }
 uint8_t next_brightness(){
-    step++;
-    step%=5;
-    uint8_t b = step == 4 ? 255 : step*64;
+    // step++;
+    // step%=5;
+    // uint8_t b = step == 4 ? 255 : step*64;
+    uint8_t b = config.brightness + config.brightness_step;
     set_brightness(b);
     return b;
 }
@@ -48,11 +50,11 @@ void update_animation_config(){
 void animation_switcher_task(void *pvParameters){
     uint8_t dir = -1;
     while(true){
-        if(brightness==0)
+        if(config.brightness==0)
             dir = 1;
-        else if(brightness==255)
+        else if(config.brightness==255)
             dir = -1;
-        set_brightness(brightness+dir);
+        set_brightness(config.brightness+dir);
         vTaskDelay(pdMS_TO_TICKS(40));
     }
     vTaskDelete( NULL );
@@ -65,7 +67,7 @@ void set_color(pixel* p, uint8_t r, uint8_t g, uint8_t b){
     p->b = b;
 }
 void set_brightness(uint8_t b){
-    brightness = b;
+    config.brightness = b;
 }
 void set_solid_color(pixel* p, uint8_t r, uint8_t g, uint8_t b){
     uint8_t arr[3] = {g,r,b};
@@ -81,7 +83,7 @@ void apply_brightness(pixel *strip_ptr){
     uint8_t *p_src = (uint8_t*)strip_ptr;
     uint8_t *p_dest = (uint8_t*)strip_temp;
     for(int i = 0; i < LED_NUM*3; i++){
-        *p_dest = (uint8_t)(((float)(*p_src) * brightness)/255.0f);
+        *p_dest = (uint8_t)(((float)(*p_src) * config.brightness)/255.0f);
         p_src++;
         p_dest++;
     }
@@ -239,22 +241,23 @@ void sprinkle_update(){
 }
 
 void animation_task(void *pvParameters){
-
-    strcpy(config.mode, "police");
-    config.anim_refresh_rate = 120;
-    config.rmt_refresh_rate = 150;
+    // strcpy(config.mode, "police");
+    config.mode = 0;
+#ifdef USING_RMT
+    config.anim_refresh_rate = RMT_REFRESH_RATE;
+#else
+    config.anim_refresh_rate = I2S_REFRESH_RATE;
+#endif
+    config.refresh_rate = 60;
     config.brightness = 255;
-    config.brightness_step = 50;
-    config.default_animation = 1;
+    config.brightness_step = 64;
+    config.default_animation = 0;
     config.enable_touch_control = true;
+    config.anim_speed = 100;
 
     config.selected_color.r = 255;
     config.selected_color.g = 0;
     config.selected_color.b = 12;
-
-    // config.selected_color.r = 255;
-    // config.selected_color.g = 255;
-    // config.selected_color.b = 255;
 
     strip_data_semphr = xSemaphoreCreateBinary();
     xSemaphoreGive(strip_data_semphr);
@@ -289,7 +292,7 @@ void animation_task(void *pvParameters){
     uint32_t counter = 0;
     uint8_t color = 0;
     while (true){
-        switch (anim_selected)
+        switch (config.mode)
         {
         // Police sprinkle
         case 0:
@@ -298,8 +301,8 @@ void animation_task(void *pvParameters){
             for(int i = 0; i < POLICE_SPRINKLE_LIGHT_COUNT; i++)
                 pol_update(&lights[i]);
             xSemaphoreGive(strip_data_semphr);
-
-            vTaskDelay(pdMS_TO_TICKS(1000/100));  
+  
+            vTaskDelay(pdMS_TO_TICKS((1000/config.anim_refresh_rate) / ANIMATION_SPEED));   
             break;
         // Rainbow
         case 1:
@@ -308,8 +311,8 @@ void animation_task(void *pvParameters){
                 led_strip_hsv2rgb((uint32_t)(counter+360.0f*((float)i/LED_NUM))%360, 100, 100, &(strip[i].r), &(strip[i].g), &(strip[i].b));
             }
             counter+=1;
-            counter%=360;
-            vTaskDelay(pdMS_TO_TICKS(1000/120));  
+            counter%=360;  
+            vTaskDelay(pdMS_TO_TICKS((1000/config.anim_refresh_rate) / ANIMATION_SPEED));   
             break;
         // Chase
         case 2:
@@ -326,7 +329,7 @@ void animation_task(void *pvParameters){
                 color%=3;
             }
             counter%=LED_NUM;
-            vTaskDelay(pdMS_TO_TICKS(1000/60));   
+            vTaskDelay(pdMS_TO_TICKS((1000/config.anim_refresh_rate) / ANIMATION_SPEED));   
             break;
         // White blinking
         case 3:
@@ -340,7 +343,7 @@ void animation_task(void *pvParameters){
                     set_color(&strip[i], 0, 0, 0);
             }           
             counter+=1;
-            vTaskDelay(pdMS_TO_TICKS(1000/2));   
+            vTaskDelay(pdMS_TO_TICKS((1000/2) / ANIMATION_SPEED));   
             break;
         // Static 
         case 4:
@@ -364,15 +367,14 @@ void animation_task(void *pvParameters){
             config.selected_color.g * sine_val, 
             config.selected_color.b * sine_val);
 
-            animation_clock += 0.001f;
+            animation_clock += 0.001f * ANIMATION_SPEED;
 
-            vTaskDelay(pdMS_TO_TICKS(1000/60));   
+            vTaskDelay(pdMS_TO_TICKS(1000/config.anim_refresh_rate));   
             break;
         case 7:
             sprinkle_update();
             
-            vTaskDelay(pdMS_TO_TICKS(1000/60));   
-
+            vTaskDelay(pdMS_TO_TICKS((1000/config.anim_refresh_rate) / ANIMATION_SPEED));   
             break;
         default:
             vTaskDelay(pdMS_TO_TICKS(1000/250));  

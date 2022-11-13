@@ -20,6 +20,8 @@
 #define MIN(X, Y) (((X) < (Y)) ? (X) : (Y))
 static const char *TAG = "wifi station";
 
+extern Config config;
+
 static int s_retry_num = 0;
 /* FreeRTOS event group to signal when we are connected*/
 static EventGroupHandle_t s_wifi_event_group;
@@ -294,6 +296,41 @@ static const char* get_path_from_uri(char *dest, const char *base_path, const ch
     return dest;
 }
 
+unsigned long createRGB(int r, int g, int b)
+{   
+    return ((r & 0xff) << 16) + ((g & 0xff) << 8) + (b & 0xff);
+}
+
+char* get_config_json(){
+    char *buf;
+    cJSON *root;
+    char color[7];
+    sprintf(color, "%06lx",createRGB(config.selected_color.r, config.selected_color.g, config.selected_color.b));
+
+    root = cJSON_CreateObject();
+
+    cJSON_AddItemToObject(root, "mode", cJSON_CreateString(num_to_mode(config.mode)));
+    cJSON_AddItemToObject(root, "anim_refresh_rate", cJSON_CreateNumber(config.anim_refresh_rate));
+    cJSON_AddItemToObject(root, "refresh_rate", cJSON_CreateNumber(config.refresh_rate));
+    cJSON_AddItemToObject(root, "brightness", cJSON_CreateNumber(config.brightness));
+    cJSON_AddItemToObject(root, "brightness_step", cJSON_CreateNumber(config.brightness_step));
+    cJSON_AddItemToObject(root, "default_animation", cJSON_CreateNumber(config.default_animation));
+    cJSON_AddItemToObject(root, "anim_speed", cJSON_CreateNumber(config.anim_speed));
+    cJSON_AddItemToObject(root, "enable_touch_control", cJSON_CreateBool(config.enable_touch_control));
+    cJSON_AddItemToObject(root, "selected_color", cJSON_CreateString(color));
+
+    // cJSON_AddItemToObject(root, "spread_value", cJSON_CreateString(config.spread_value));
+    // cJSON_AddItemToObject(root, "animation_direction", cJSON_CreateString(config.animation_direction));
+    // cJSON_AddItemToObject(root, "single_color", cJSON_CreateBool(false));
+    
+    buf = cJSON_Print(root);
+    cJSON_Delete(root);
+
+    printf("Config: \n%s\n", buf);
+
+    return buf;
+}
+
 esp_err_t get_handler(httpd_req_t *req){
     printf("GET Request received: \n%s\n", req->uri);
     #define HTTP_CHUNK_BUFSIZE 8192/2
@@ -304,7 +341,19 @@ esp_err_t get_handler(httpd_req_t *req){
     char filepath[FILE_PATH_MAX];
     const char *filename = get_path_from_uri(filepath, base_path, req->uri, sizeof(filepath));
     const char *spiffs_empty = "/spiffs/";
-    //printf("Filename: \n%s\n slen1: %d slen2: %d\n", filename, strlen(filename), strlen(spiffs_empty));
+    printf("Filename: %s\n", filename);
+    
+    if (!strcmp(req->uri, "/config")) {
+        httpd_resp_set_type(req, "application/json");
+        char* buf = get_config_json();
+        if(httpd_resp_send(req, buf, strlen(buf)) == ESP_OK){
+            free(buf);
+            return ESP_OK;
+        }
+        free(buf);
+        return ESP_FAIL;
+    }
+    
     FILE * fd;
     if(!strcmp(spiffs_empty, filename))
         fd = fopen ("/spiffs/index.html", "r");
@@ -356,8 +405,6 @@ esp_err_t get_handler(httpd_req_t *req){
     /* Respond with an empty chunk to signal HTTP response completion */
     httpd_resp_send_chunk(req, NULL, 0);
     return ESP_OK;
-
-    return ESP_OK;
 }
 
 uint8_t byte_from_hex(char l, char r){
@@ -404,12 +451,11 @@ esp_err_t post_handler(httpd_req_t *req){
     content[sizeof(content)-1] = '\0';
 
 
-    extern Config config;
 	cJSON *root = cJSON_Parse(content);
 	if (cJSON_GetObjectItem(root, "mode")) {
 		char *mode = cJSON_GetObjectItem(root,"mode")->valuestring;
 		ESP_LOGI(TAG, "mode=%s",mode);
-        strcpy(config.mode, mode);
+        config.mode = mode_to_num(mode);
 	}
 	if (cJSON_GetObjectItem(root, "brightness")) {
 		int brightness = cJSON_GetObjectItem(root,"brightness")->valueint;
@@ -429,11 +475,35 @@ esp_err_t post_handler(httpd_req_t *req){
             config.selected_color = receivedPixel;
         }
     }
+	if (cJSON_GetObjectItem(root, "anim_refresh_rate")) {
+		int anim_refresh_rate = cJSON_GetObjectItem(root,"anim_refresh_rate")->valueint;
+		ESP_LOGI(TAG, "anim_refresh_rate=%d",anim_refresh_rate);
+        config.anim_refresh_rate = anim_refresh_rate;
+	}
+	if (cJSON_GetObjectItem(root, "refresh_rate")) {
+		int refresh_rate = cJSON_GetObjectItem(root,"refresh_rate")->valueint;
+		ESP_LOGI(TAG, "refresh_rate=%d",refresh_rate);
+        config.refresh_rate = refresh_rate;
+	}
+	if (cJSON_GetObjectItem(root, "brightness_step")) {
+		int brightness_step = cJSON_GetObjectItem(root,"brightness_step")->valueint;
+		ESP_LOGI(TAG, "brightness_step=%d",brightness_step);
+        config.brightness_step = brightness_step;
+	}
+	if (cJSON_GetObjectItem(root, "enable_touch_control")) {
+		int enable_touch_control = cJSON_GetObjectItem(root,"enable_touch_control")->valueint;
+		ESP_LOGI(TAG, "enable_touch_control=%d",enable_touch_control);
+        config.enable_touch_control = enable_touch_control;
+	}
+	if (cJSON_GetObjectItem(root, "anim_speed")) {
+		int anim_speed = cJSON_GetObjectItem(root,"anim_speed")->valueint;
+		ESP_LOGI(TAG, "anim_speed=%d",anim_speed);
+        config.anim_speed = anim_speed;
+	}
     if (cJSON_GetObjectItem(root, "rgb_data")){
         char* data = cJSON_GetObjectItem(root, "rgb_data")->valuestring;
         extern pixel strip[LED_NUM];
         int char_length = strlen(data);
-        int byte_length = char_length/2;
         int pxl_length = char_length/6;
         for(int i = 0; i < pxl_length; i++){
             strip[i].g = byte_from_hex(data[i*6+0], data[i*6+1]);

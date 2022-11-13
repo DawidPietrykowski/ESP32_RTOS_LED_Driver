@@ -7,6 +7,8 @@
 
 #include "animations.h"
 
+// #define USING_RMT
+
 // WS2812B strip config
 #define LED_GPIO 17
 #define LED_NUM 60
@@ -19,26 +21,22 @@
 #define WS2812_RESET_US (25)
 #define ZERO_BUFFER_SIZE 48
 
-
-// Color stream
-#define COLOR_SLIDE_IN_INTERVAL 2
-#define CENTER_LED_ID (LED_NUM/2)
-
-
-
-typedef struct {
-  char mode[10];
+struct config_t {
+  int mode;
   int anim_refresh_rate;
-  int rmt_refresh_rate;
+  int refresh_rate;
   int brightness;
   int brightness_step;
   int default_animation;
+  int anim_speed;
   bool enable_touch_control;
   pixel selected_color;
+};
 
-} Config;
+typedef struct config_t Config;
 
-int mode_to_num(Config* config);
+int mode_to_num(char* mode);
+char* num_to_mode(int mode);
 
 void led_task_rmt(void *pvParameters);
 void led_task_i2s(void *pvParameters);

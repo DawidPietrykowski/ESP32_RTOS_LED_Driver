@@ -11,6 +11,7 @@
 #define LED_GPIO 17
 #define LED_NUM 60
 #define RMT_REFRESH_RATE (120)
+#define I2S_REFRESH_RATE (60)
 #define WS2812_T0H_NS (400)
 #define WS2812_T0L_NS (800)
 #define WS2812_T1H_NS (850)
@@ -39,7 +40,7 @@ typedef struct {
 
 int mode_to_num(Config* config);
 
-void led_task(void *pvParameters);
+void led_task_rmt(void *pvParameters);
 void led_task_i2s(void *pvParameters);
 
 uint32_t update_clk_rate();
@@ -47,4 +48,3 @@ void print_config();
 
 void update_strip(rmt_config_t* config, const rmt_item32_t *rmt_items, pixel strip[], uint32_t led_num);
 void encode_strip_i2s(pixel strip[], uint32_t led_num);
-

@@ -17,6 +17,14 @@
  }
 
 
+ .color-panel {
+  /* background: #1F232A; */
+  width: 252px;
+  height: 372px;
+  border-radius: 8px;
+  /* border: 2px solid #364347; */
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  position: relative; }
 
 
 
@@ -28,8 +36,9 @@
  }
 
  body {
-   font-family: sans-serif;
+   font-family: Roboto;
    padding: 60px 20px;
+   color: rgb(121, 121, 121);
  }
 
  @media (min-width: 600px) {
@@ -158,8 +167,8 @@
  }
 
  body {
-   font-family: 'Roboto', sans-serif;
-   color: rgb(85, 75, 85);
+   font-family: Roboto, sans-serif;
+   color: rgb(121, 121, 121);
    background-color: rgb(255, 255, 255);
  }
 

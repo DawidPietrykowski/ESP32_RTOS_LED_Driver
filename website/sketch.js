@@ -51,12 +51,24 @@ function HSVtoRGB(h, s, v) {
 
 let animation_texts = ["rainbow", "static", "breathing", "blinking", "chase", "police", "sparkles", "off", "received"];
 
+let dark_color_picker = 
+    new ColorPickerControl({ container: document.querySelector('.color-picker-dark-theme'), theme: 'dark' });
+
+dark_color_picker.on('change', (color) =>  {
+    // document.getElementById("butterfly").style.setProperty('--butterfly-color', color.toHEX());
+    // document.getElementById("butterfly").style.setProperty('--butterfly-opacity', color.a / 255);
+    // light_color_picker.color.fromHSVa(color.h, color.s, color.v, color.a);
+    selectColor(color);
+});
+
 function selectColor(color){
-  console.log(color.toHex());
-  solid_color.r = color.toRgb().r
-  solid_color.g = color.toRgb().g
-  solid_color.b = color.toRgb().b
-  config["selected_color"] = color.toHex();
+  
+  console.log(color.toRGB());
+  solid_color.r = color.toRGB()[0];
+  solid_color.g = color.toRGB()[1];
+  solid_color.b = color.toRGB()[2];
+  config["selected_color"] = color.toHEX().substring(1, 7).toLowerCase();
+  console.log(config["selected_color"]);
 }
 
 function selectAnimation(animation_number){

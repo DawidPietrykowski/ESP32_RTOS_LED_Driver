@@ -28,7 +28,65 @@ let config = {
   "anim_speed":100
 };
 
+let animation_texts = ["rainbow", "static", "breathing", "blinking", "chase", "police", "sparkles", "off", "received"];
+
+let dark_color_picker = 
+    new ColorPickerControl({ container: document.querySelector('.color-picker-dark-theme'), theme: 'dark' });
+
+dark_color_picker.on('change', (color) =>  {
+    selectColor(color);
+});
+
+
 initConfig();
+
+function applyConfig(){
+  let animation_number = animation_texts.findIndex(x => x === config["mode"]);
+  for (const element of document.getElementsByClassName("menu-entry")) {
+    if(element.id == animation_number)
+      element.classList.add("active");
+    else
+      element.classList.remove("active");
+  }
+
+  let elem;
+  elem = document.getElementById("animation-refresh-value");
+  elem.textContent = config["anim_refresh_rate"];
+  elem = document.getElementById("refresh-rate-value");
+  elem.textContent = config["refresh_rate"];
+  elem = document.getElementById("brightness-value");
+  elem.textContent = config["brightness"];
+  elem = document.getElementById("brightness-step-value");
+  elem.textContent = config["brightness_step"];
+  elem = document.getElementById("default-animation-value");
+  elem.textContent = config["default_animation"];
+  elem = document.getElementById("touch-control-value");
+  elem.checked = config["enable_touch_control"];
+
+  elem = document.getElementById("animation-speed-value");
+  elem.textContent = config["anim_speed"];
+  elem = document.getElementById("animation-spread-value");
+  elem.textContent = config["spread_value"];
+  elem = document.getElementById("animation-direction-value");
+  elem.textContent = config["animation_direction"];
+  elem = document.getElementById("single-color-value");
+  elem.checked = config["single_color"];
+
+  // dark_color_picker.color.h = hexToRgb("#" + config["selected_color"].r);
+  // dark_color_picker.color.s = hexToRgb("#" + config["selected_color"].g);
+  // dark_color_picker.color.v = hexToRgb("#" + config["selected_color"].b);
+  // dark_color_picker.emit('change', dark_color_picker.color);
+  // dark_color_picker.update();
+}
+
+function hexToRgb(hex) {
+  var result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  return result ? {
+    r: parseInt(result[1], 16),
+    g: parseInt(result[2], 16),
+    b: parseInt(result[3], 16)
+  } : null;
+}
 
 function initConfig(){
   var xmlHttp = new XMLHttpRequest();
@@ -37,6 +95,7 @@ function initConfig(){
         console.log(xmlHttp.responseText);
         obj = JSON.parse(xmlHttp.responseText);
         config["mode"] = obj["mode"];
+        config["selected_color"] = obj["selected_color"];
         config["anim_refresh_rate"] = obj["anim_refresh_rate"];
         config["refresh_rate"] = obj["refresh_rate"];
         config["brightness"] = obj["brightness"];
@@ -48,10 +107,11 @@ function initConfig(){
         config["animation_direction"] = 1;
         config["single_color"] = false;
         console.log(config);
+        applyConfig();
   }
 }
   
-  xmlHttp.open( "GET", domain_name + "config", true );
+  xmlHttp.open( "GET", window.location.href + "config", true );
   xmlHttp.send( null );
   return xmlHttp.responseText;
 }
@@ -81,17 +141,7 @@ function HSVtoRGB(h, s, v) {
   };
 }
 
-let animation_texts = ["rainbow", "static", "breathing", "blinking", "chase", "police", "sparkles", "off", "received"];
 
-let dark_color_picker = 
-    new ColorPickerControl({ container: document.querySelector('.color-picker-dark-theme'), theme: 'dark' });
-
-dark_color_picker.on('change', (color) =>  {
-    // document.getElementById("butterfly").style.setProperty('--butterfly-color', color.toHEX());
-    // document.getElementById("butterfly").style.setProperty('--butterfly-opacity', color.a / 255);
-    // light_color_picker.color.fromHSVa(color.h, color.s, color.v, color.a);
-    selectColor(color);
-});
 
 function selectColor(color){
   
@@ -129,14 +179,11 @@ function selectAnimation(animation_number){
 
   var xhr = new XMLHttpRequest();
   var url = domain_name;
-  //var url = "http://192.168.1.89";
   xhr.open("POST", url, true);
   xhr.setRequestHeader("Content-Type", "application/json");
   xhr.onreadystatechange = function () {
       if (xhr.readyState === 4 && xhr.status === 200) {
           console.log("received HTTP 200");
-          // var json = JSON.parse(xhr.responseText);
-          // console.log(json.email + ", " + json.password);
       }
   };
 

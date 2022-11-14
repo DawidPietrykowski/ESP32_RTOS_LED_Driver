@@ -356,6 +356,8 @@ function ColorPickerControl(conf) {
         eventListeners[event].forEach(cb => cb(...args, self));
     }
 
+    // this.emit = emit;
+
     /**
      * Event subscribe function
      * 

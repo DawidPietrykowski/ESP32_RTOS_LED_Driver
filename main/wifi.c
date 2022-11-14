@@ -374,6 +374,10 @@ esp_err_t get_handler(httpd_req_t *req){
         ESP_LOGI(TAG, "File is css");
         httpd_resp_set_type(req, "text/css");
     }
+    if(strcmp(fileextension, ".js")==0){
+        ESP_LOGI(TAG, "File is js");
+        httpd_resp_set_type(req, "text/javascript");
+    }
     httpd_resp_set_hdr(req, "Access-Control-Allow-Origin", "*");
     
     char *chunk = buffer;
@@ -422,30 +426,15 @@ uint8_t byte_from_hex(char l, char r){
 
 esp_err_t post_handler(httpd_req_t *req){
     printf("POST Request received: \n%s\n", req->uri);
-
-
-
-    /* Destination buffer for content of HTTP POST request.
-     * httpd_req_recv() accepts char* only, but content could
-     * as well be any binary data (needs type casting).
-     * In case of string data, null termination will be absent, and
-     * content length would give length of string */
     char content[512];
 
-    /* Truncate if content length larger than the buffer */
     size_t recv_size = MIN(req->content_len, sizeof(content)-1);
 
     int ret = httpd_req_recv(req, content, recv_size);
-    if (ret <= 0) {  /* 0 return value indicates connection closed */
-        /* Check if timeout occurred */
+    if (ret <= 0) {
         if (ret == HTTPD_SOCK_ERR_TIMEOUT) {
-            /* In case of timeout one can choose to retry calling
-             * httpd_req_recv(), but to keep it simple, here we
-             * respond with an HTTP 408 (Request Timeout) error */
             httpd_resp_send_408(req);
         }
-        /* In case of error, returning ESP_FAIL will
-         * ensure that the underlying socket is closed */
         return ESP_FAIL;
     }
     content[sizeof(content)-1] = '\0';

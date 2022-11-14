@@ -2,9 +2,12 @@ let led_num = 60;
 let width = window.innerWidth-120;
 let height = 50;
 let strip = [[]];
-let anim_num = 0;
+let anim_num = 1;
 let counter = 0;
 let breathing_counter = 0
+let blinking_counter = 0.0
+let current_num = 0;
+let chase_step = 0;
 let last_time = 0;
 let solid_color = {
   r : 255,
@@ -41,13 +44,14 @@ dark_color_picker.on('change', (color) =>  {
 initConfig();
 
 function applyConfig(){
-  let animation_number = animation_texts.findIndex(x => x === config["mode"]);
+  anim_num = animation_texts.findIndex(x => x === config["mode"]);
   for (const element of document.getElementsByClassName("menu-entry")) {
-    if(element.id == animation_number)
+    if(element.id == anim_num)
       element.classList.add("active");
     else
       element.classList.remove("active");
   }
+  anim_num = parseInt(anim_num);
 
   let elem;
   elem = document.getElementById("animation-refresh-value");
@@ -154,7 +158,7 @@ function selectColor(color){
 }
 
 function selectAnimation(animation_number){
-  anim_num = animation_number;
+  anim_num = parseInt(animation_number);
   var element = document.getElementById("animation-refresh-value");
   config["anim_refresh_rate"] = parseInt(element.textContent);
   var element = document.getElementById("refresh-rate-value");
@@ -198,10 +202,14 @@ function selectAnimation(animation_number){
       element.classList.add("active");
     else
       element.classList.remove("active");
+
+      console.log("animation_number: " + animation_number);
+      console.log("anim_num: " + anim_num);
 }
 }
 
 function apply_animation(){
+  console.log("apply_animation anim_num: " + anim_num);
   switch(anim_num){
     case 0:
       counter += ((millis()-last_time)/1000)*60;
@@ -223,6 +231,47 @@ function apply_animation(){
       for(let i = 0; i < led_num; i++){
         strip[i] = [solid_color.r * multiplier, solid_color.g * multiplier, solid_color.b * multiplier];
       }
+      break;
+      case 3:
+        blinking_counter += ((millis()-last_time)/1000)*(config.anim_speed/100.0);
+        last_time = millis();
+        let offset = 1;
+        if(blinking_counter < 0.5)
+          offset = 1;
+        else if(blinking_counter > 0.5){
+          offset = 0;
+        }
+        if(blinking_counter > 1)
+          blinking_counter = 0;
+        for(let i = 0; i < led_num; i++){
+          if((i + offset) % 2 == 0)
+            strip[i] = [solid_color.r, solid_color.g, solid_color.b];
+          else
+            strip[i] = [18, 18, 18];
+        }
+        break;
+      case 4:
+        current_num += ((millis()-last_time)/1000)*2.0*60.0*(config.anim_speed/100.0);
+        last_time = millis();
+        if(current_num >= 60){
+          current_num = 0;
+          chase_step++;
+          if(chase_step == 3)
+            chase_step = 0;
+        }
+        for(let i = 0; i < led_num; i++){
+          if(i == Math.floor(current_num)){
+            strip[i] = [0, 0, 0];
+            strip[i][chase_step] = config.brightness;
+          }
+          else
+            strip[i] = [18, 18, 18];
+        }
+        break;
+        default:
+        for(let i = 0; i < led_num; i++){
+          strip[i] = [18, 18, 18];
+        }
       break;
   }
 
